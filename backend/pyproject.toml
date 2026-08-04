@@ -13,4 +13,5 @@ dependencies = [
     "faker>=24.0.0",
     "python-dotenv>=1.0.1",
     "groq>=1.6.0",
+    "sqlglot>=30.14.0",
 ]
