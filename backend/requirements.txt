@@ -1,0 +1,29 @@
+# --- Web Framework & API ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+
+# --- Database & ORM ---
+sqlalchemy>=2.0.28
+#alembic>=1.13.1
+
+# --- Synthetic Data Generation ---
+faker>=24.0.0
+
+# --- Vector Database & Embeddings (Examples Retriever) ---
+chromadb>=0.4.24
+
+# --- LLM Orchestration & SDKs ---
+anthropic>=0.20.0
+openai>=1.14.0
+
+# --- SQL Parsing & Guardrails ---
+sqlglot>=23.0.0
+sqlparse>=0.4.4
+
+# --- Utilities & Testing ---
+python-dotenv>=1.0.1
+#httpx>=0.27.0
+#pytest>=8.1.0
+pydantic
+groq>=1.6.0
+requests>=2.34.2
