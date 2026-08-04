@@ -13,8 +13,8 @@ faker>=24.0.0
 chromadb>=0.4.24
 
 # --- LLM Orchestration & SDKs ---
-anthropic>=0.20.0
-openai>=1.14.0
+#anthropic>=0.20.0
+#openai>=1.14.0
 
 # --- SQL Parsing & Guardrails ---
 sqlglot>=23.0.0
