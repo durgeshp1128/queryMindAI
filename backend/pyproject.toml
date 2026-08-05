@@ -14,4 +14,6 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "groq>=1.6.0",
     "sqlglot>=30.14.0",
+    "chromadb>=1.5.9",
+    "sentence-transformers>=5.6.1",
 ]
