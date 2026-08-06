@@ -2,6 +2,7 @@ import os
 import time
 from typing import Any, Dict, List, Tuple, Optional
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,6 +22,14 @@ app = FastAPI(
     title="QueryMind AI Production Engine",
     description="Text-to-SQL Engine with ChromaDB Few-Shot RAG, AST Guardrails & Self-Healing",
     version="0.3.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173","*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 engine = create_engine(DB_URI, connect_args={"check_same_thread": False})
