@@ -16,4 +16,5 @@ dependencies = [
     "sqlglot>=30.14.0",
     "chromadb>=1.5.9",
     "sentence-transformers>=5.6.1",
+    "tabulate>=0.10.0",
 ]

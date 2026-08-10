@@ -150,7 +150,7 @@ class QueryResponse(BaseModel):
 
 def call_llm(messages: List[Dict[str, str]]) -> str:
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant", #"llama-3.3-70b-versatile",
         messages=messages,
         temperature=0.0
     )
@@ -164,7 +164,7 @@ def generate_summary(user_prompt: str, data: List[Dict[str, Any]]) -> str:
     
     summary_prompt = f"Question: '{user_prompt}'\nSample Data: {data[:5]}\nProvide a concise 1-2 sentence summary."
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant", #"llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": summary_prompt}],
         temperature=0.3
     )
@@ -182,16 +182,18 @@ def execute_text_to_sql(request: QueryRequest):
         for i, ex in enumerate(retrieved_examples, 1):
             examples_str += f"Example {i}:\nQuestion: {ex['question']}\nSQL: {ex['sql']}\n\n"
 
-    system_instruction = f"""You are a strict SQLite text-to-SQL generator.
-Output raw executable SQLite SQL ONLY. Do not wrap code in markdown.
+#     system_instruction = f"""You are a strict SQLite text-to-SQL generator.
+# Output raw executable SQLite SQL ONLY. Do not wrap code in markdown.
 
-Database Schema:
-{DB_SCHEMA_CONTEXT}
+# Database Schema:
+# {DB_SCHEMA_CONTEXT}
 
-{examples_str}
-Instruction:
-Translate the user's question into executable SQLite SQL using the schema and similar examples provided above.
-"""
+# {examples_str}
+# Instruction:
+# Translate the user's question into executable SQLite SQL using the schema and similar examples provided above.
+# """
+    # Refined System Prompt with Strict Rules
+    system_instruction = f"""You are an expert SQLite Text-to-SQL engine. Return ONLY executable SQL. No markdown, no ```sql, no explanations.SCHEMA:{DB_SCHEMA_CONTEXT}{examples_str}RULES:DIALECT: SQLite only. Use strftime('%Y', c) for years, strftime('%Y-%m', c) for months. No DATE_TRUNC, EXTRACT, or ILIKE.Use LIKE.COLUMNS: Never use 'SELECT *'.Explicitly list required columns.AGGREGATIONS: Pair SUM/COUNT/AVG with GROUP BY.Filter aggregates using HAVING.JOINS: Use LEFT JOIN + 'WHERE fk IS NULL' for missing/unmatched records.ALIASES: Use explicit descriptive aliases (e.g., total_orders, total_spent, avg_price)"""
 
     messages = [
         {"role": "system", "content": system_instruction},
