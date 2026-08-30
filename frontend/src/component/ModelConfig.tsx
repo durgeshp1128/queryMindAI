@@ -10,10 +10,17 @@ interface ModelState {
 }
 
 const PROVIDER_MODELS: Record<string, string[]> = {
-    groq: ['llama-3.1-8b-instant', 'llama-3.3-70b-versatile', 'gemma2-9b-it', 'mixtral-8x7b-32768'],
+    groq: [
+        'openai/gpt-oss-20b',
+        'openai/gpt-oss-120b',
+        'qwen/qwen3.8-27b',
+        'qwen/qwen3.6-27b',
+        'groq/compound-mini',
+        'groq/compound'
+    ],
     openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-    anthropic: ['claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022'],
-    ollama: ['llama3', 'codellama', 'mistral', 'phi3'],
+    anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
+    ollama: ['llama3', 'codellama', 'mistral', 'phi3', 'qwen2.5-coder'],
 };
 
 const SQL_DIALECTS = ['sqlite', 'mysql', 'postgres', 'bigquery', 'snowflake', 'tsql'];
@@ -21,9 +28,9 @@ const SQL_DIALECTS = ['sqlite', 'mysql', 'postgres', 'bigquery', 'snowflake', 't
 export default function ModelConfig() {
     const [config, setConfig] = useState<ModelState>({
         model_provider: 'groq',
-        model_name: 'llama-3.1-8b-instant',
+        model_name: 'openai/gpt-oss-20b',
         temperature: 0.0,
-        max_tokens: 1024,
+        max_tokens: 512,
         sql_dialect: 'sqlite',
     });
     const [loading, setLoading] = useState(true);

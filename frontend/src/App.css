@@ -550,3 +550,25 @@
   position: relative;
   right: auto;
 }
+
+/* Sortable Table Headers */
+.data-table th[style*="cursor: pointer"]:hover {
+  background-color: rgba(var(--brand-primary-rgb, 99, 102, 241), 0.15);
+  transition: background-color 0.15s ease;
+}
+
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  transition: opacity 0.15s ease;
+}
+
+.sort-indicator.inactive {
+  opacity: 0.3;
+}
+
+.sort-indicator.active {
+  opacity: 1;
+  color: var(--brand-primary);
+}

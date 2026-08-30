@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Copy, BookOpen, AlertTriangle } from "lucide-react";
+import { Send, Copy, BookOpen, AlertTriangle, ArrowUp, ArrowDown } from "lucide-react";
 
 const SAMPLE_PROMPTS = [
     "Top 5 selling products last month",
@@ -30,10 +30,46 @@ interface Message {
     timestamp: string;
 }
 
+type SortDirection = "asc" | "desc" | null;
+
+interface SortState {
+    column: string | null;
+    direction: SortDirection;
+}
+
+function sortData(data: Record<string, any>[], sortState: SortState): Record<string, any>[] {
+    if (!sortState.column || !sortState.direction) return data;
+
+    return [...data].sort((a, b) => {
+        const valA = a[sortState.column!];
+        const valB = b[sortState.column!];
+
+        // Handle nulls
+        if (valA == null && valB == null) return 0;
+        if (valA == null) return sortState.direction === "asc" ? -1 : 1;
+        if (valB == null) return sortState.direction === "asc" ? 1 : -1;
+
+        // Numeric comparison
+        const numA = Number(valA);
+        const numB = Number(valB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return sortState.direction === "asc" ? numA - numB : numB - numA;
+        }
+
+        // String comparison
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA < strB) return sortState.direction === "asc" ? -1 : 1;
+        if (strA > strB) return sortState.direction === "asc" ? 1 : -1;
+        return 0;
+    });
+}
+
 export default function QueryChat() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [sortStates, setSortStates] = useState<Record<string, SortState>>({});
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -43,6 +79,39 @@ export default function QueryChat() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    const handleSort = (messageId: string, column: string) => {
+        setSortStates(prev => {
+            const current = prev[messageId] || { column: null, direction: null };
+            let newDirection: SortDirection;
+
+            if (current.column !== column) {
+                newDirection = "asc";
+            } else if (current.direction === "asc") {
+                newDirection = "desc";
+            } else if (current.direction === "desc") {
+                newDirection = null;
+            } else {
+                newDirection = "asc";
+            }
+
+            return {
+                ...prev,
+                [messageId]: { column: newDirection ? column : null, direction: newDirection }
+            };
+        });
+    };
+
+    const getSortIcon = (messageId: string, column: string) => {
+        const sortState = sortStates[messageId];
+        if (!sortState || sortState.column !== column) {
+            return <span className="sort-indicator inactive">⇅</span>;
+        }
+        if (sortState.direction === "asc") {
+            return <ArrowUp size={12} className="sort-indicator active" />;
+        }
+        return <ArrowDown size={12} className="sort-indicator active" />;
+    };
 
     const handleSubmit = async (promptText: string) => {
         if (!promptText.trim() || loading) return;
@@ -140,88 +209,140 @@ export default function QueryChat() {
                 </>
             ) : (
                 <div className="chat-messages">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={`message-row ${msg.role}`}>
-                            <div className={`message-bubble ${msg.role}`}>
-                                {msg.role === 'user' ? (
-                                    <>
-                                        <div>{msg.content}</div>
-                                        <div className="message-timestamp" style={{ color: "var(--brand-light)", opacity: 0.8 }}>{msg.timestamp}</div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="bot-intro-text">{msg.content}</div>
+                    {messages.map((msg) => {
+                        const sortState = sortStates[msg.id] || { column: null, direction: null };
+                        const displayData = msg.response?.data
+                            ? sortData(msg.response.data, sortState)
+                            : [];
 
-                                        {msg.error && (
-                                            <div style={{ color: "red", display: "flex", gap: "8px", alignItems: "center" }}>
-                                                <AlertTriangle size={16} /> {msg.error}
-                                            </div>
-                                        )}
+                        return (
+                            <div key={msg.id} className={`message-row ${msg.role}`}>
+                                <div className={`message-bubble ${msg.role}`}>
+                                    {msg.role === 'user' ? (
+                                        <>
+                                            <div>{msg.content}</div>
+                                            <div className="message-timestamp" style={{ color: "var(--brand-light)", opacity: 0.8 }}>{msg.timestamp}</div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="bot-intro-text">{msg.content}</div>
 
-                                        {msg.response && (
-                                            <>
-                                                {msg.response.sql_query && (
-                                                    <div className="sql-container">
-                                                        <div className="sql-header">
-                                                            <span>Generated SQL</span>
-                                                            <button className="btn-icon" style={{ padding: "2px" }} title="Copy SQL">
-                                                                <Copy size={14} />
-                                                            </button>
+                                            {msg.error && (
+                                                <div style={{ color: "red", display: "flex", gap: "8px", alignItems: "center" }}>
+                                                    <AlertTriangle size={16} /> {msg.error}
+                                                </div>
+                                            )}
+
+                                            {msg.response && (
+                                                <>
+                                                    {msg.response.was_healed && (
+                                                        <div style={{
+                                                            margin: '0.75rem 0',
+                                                            padding: '0.75rem',
+                                                            borderRadius: '0.5rem',
+                                                            backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                                                            border: '1px solid rgba(234, 179, 8, 0.3)',
+                                                            color: '#eab308'
+                                                        }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.85rem' }}>
+                                                                <span>⚡ Self-Healing Activated & Succeeded</span>
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', marginTop: '4px', color: 'var(--text-secondary)' }}>
+                                                                Initial query encountered a SQLite runtime error, was automatically diagnosed by AI, and fixed on the fly.
+                                                            </div>
+                                                            {msg.response.healing_error_message && (
+                                                                <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#ef4444', fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)', padding: '4px 8px', borderRadius: '4px' }}>
+                                                                    <strong>Error caught:</strong> {msg.response.healing_error_message}
+                                                                </div>
+                                                            )}
+                                                            {msg.response.original_failed_sql && (
+                                                                <div style={{ marginTop: '4px', fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                                                                    <strong>Initial SQL:</strong> {msg.response.original_failed_sql}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div className="sql-code">
-                                                            {msg.response.sql_query}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                    )}
 
-                                                {msg.response.data && msg.response.data.length > 0 && (
-                                                    <div className="data-table-section">
-                                                        <div className="data-table-title">Query Results</div>
-                                                        <div className="data-table-container scrollbar-thin">
-                                                            <table className="data-table">
-                                                                <thead>
-                                                                    <tr>
-                                                                        {Object.keys(msg.response.data[0]).map((key) => (
-                                                                            <th key={key}>{key}</th>
-                                                                        ))}
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {msg.response.data.map((row, idx) => (
-                                                                        <tr key={idx}>
-                                                                            {Object.keys(row).map((key) => (
-                                                                                <td key={key}>{row[key]}</td>
+                                                    {msg.response.sql_query && (
+                                                        <div className="sql-container">
+                                                            <div className="sql-header">
+                                                                <span>{msg.response.was_healed ? "Healed Executable SQL" : "Generated SQL"}</span>
+                                                                <button className="btn-icon" style={{ padding: "2px" }} title="Copy SQL">
+                                                                    <Copy size={14} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="sql-code">
+                                                                {msg.response.sql_query}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {displayData.length > 0 && (
+                                                        <div className="data-table-section">
+                                                            <div className="data-table-title">
+                                                                Query Results
+                                                                {sortState.column && (
+                                                                    <span style={{ fontSize: '0.7rem', color: 'var(--brand-primary)', marginLeft: '0.5rem' }}>
+                                                                        Sorted by: {sortState.column} ({sortState.direction})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className="data-table-container scrollbar-thin">
+                                                                <table className="data-table">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            {Object.keys(msg.response.data[0]).map((key) => (
+                                                                                <th
+                                                                                    key={key}
+                                                                                    onClick={() => handleSort(msg.id, key)}
+                                                                                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                                                                                    title={`Click to sort by ${key}`}
+                                                                                >
+                                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                        {key}
+                                                                                        {getSortIcon(msg.id, key)}
+                                                                                    </div>
+                                                                                </th>
                                                                             ))}
                                                                         </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {displayData.map((row, idx) => (
+                                                                            <tr key={idx}>
+                                                                                {Object.keys(row).map((key) => (
+                                                                                    <td key={key}>{row[key]}</td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
                                                         </div>
+                                                    )}
+
+                                                    <div className="query-meta">
+                                                        Rows Returned: {msg.response.row_count} | Execution Time: {msg.response.execution_time_ms} ms
                                                     </div>
-                                                )}
 
-                                                <div className="query-meta">
-                                                    Rows Returned: {msg.response.row_count} | Execution Time: {msg.response.execution_time_ms} ms
-                                                </div>
-
-                                                {msg.response.summary && (
-                                                    <div className="ai-summary-card">
-                                                        <BookOpen size={18} className="ai-summary-icon" />
-                                                        <div className="ai-summary-content">
-                                                            <div className="ai-summary-title">AI Summary</div>
-                                                            <div className="ai-summary-text">{msg.response.summary}</div>
+                                                    {msg.response.summary && (
+                                                        <div className="ai-summary-card">
+                                                            <BookOpen size={18} className="ai-summary-icon" />
+                                                            <div className="ai-summary-content">
+                                                                <div className="ai-summary-title">AI Summary</div>
+                                                                <div className="ai-summary-text">{msg.response.summary}</div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                )}
+                                                    )}
 
-                                                <div className="message-timestamp">{msg.timestamp}</div>
-                                            </>
-                                        )}
-                                    </>
-                                )}
+                                                    <div className="message-timestamp">{msg.timestamp}</div>
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
 
                     {loading && (
                         <div className="loading-indicator">

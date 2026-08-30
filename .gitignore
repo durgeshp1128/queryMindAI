@@ -224,3 +224,7 @@ backend/chroma_db/
 frontend/node_modules/
 frontend/.env
 frontend/dist/
+
+prd.md
+chroma_db/
+app.db

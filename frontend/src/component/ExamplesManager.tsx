@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Pencil, Check, X } from 'lucide-react';
 
 interface Example {
     id: string;
@@ -15,6 +15,12 @@ export default function ExamplesManager() {
     const [newQuestion, setNewQuestion] = useState('');
     const [newSql, setNewSql] = useState('');
     const [adding, setAdding] = useState(false);
+
+    // Inline edit state
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editQuestion, setEditQuestion] = useState('');
+    const [editSql, setEditSql] = useState('');
+    const [saving, setSaving] = useState(false);
 
     const fetchExamples = async () => {
         setLoading(true);
@@ -67,6 +73,40 @@ export default function ExamplesManager() {
             setExamples(examples.filter(ex => ex.id !== id));
         } catch (err: any) {
             alert(err.message);
+        }
+    };
+
+    const startEditing = (ex: Example) => {
+        setEditingId(ex.id);
+        setEditQuestion(ex.question);
+        setEditSql(ex.sql);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditQuestion('');
+        setEditSql('');
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingId || !editQuestion.trim() || !editSql.trim()) return;
+        setSaving(true);
+        try {
+            const res = await fetch(`http://127.0.0.1:8080/examples/${editingId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question: editQuestion, sql: editSql })
+            });
+            if (!res.ok) throw new Error("Failed to update example");
+            const updated = await res.json();
+            setExamples(examples.map(ex =>
+                ex.id === editingId ? updated : ex
+            ));
+            cancelEditing();
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -129,7 +169,7 @@ export default function ExamplesManager() {
                             <tr>
                                 <th>Question</th>
                                 <th>SQL Query</th>
-                                <th style={{ width: '80px', textAlign: 'center' }}>Actions</th>
+                                <th style={{ width: '120px', textAlign: 'center' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -140,12 +180,72 @@ export default function ExamplesManager() {
                             ) : (
                                 examples.map(ex => (
                                     <tr key={ex.id}>
-                                        <td style={{ verticalAlign: 'top', minWidth: '200px' }}>{ex.question}</td>
-                                        <td style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', color: 'var(--brand-primary)' }}>{ex.sql}</td>
+                                        <td style={{ verticalAlign: 'top', minWidth: '200px' }}>
+                                            {editingId === ex.id ? (
+                                                <input
+                                                    type="text"
+                                                    className="chat-input"
+                                                    style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem' }}
+                                                    value={editQuestion}
+                                                    onChange={(e) => setEditQuestion(e.target.value)}
+                                                />
+                                            ) : (
+                                                ex.question
+                                            )}
+                                        </td>
+                                        <td style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', color: 'var(--brand-primary)', verticalAlign: 'top' }}>
+                                            {editingId === ex.id ? (
+                                                <textarea
+                                                    className="chat-input"
+                                                    style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', minHeight: '60px', resize: 'vertical', fontFamily: 'monospace' }}
+                                                    value={editSql}
+                                                    onChange={(e) => setEditSql(e.target.value)}
+                                                />
+                                            ) : (
+                                                ex.sql
+                                            )}
+                                        </td>
                                         <td style={{ verticalAlign: 'top', textAlign: 'center' }}>
-                                            <button onClick={() => handleDelete(ex.id)} className="btn-icon" style={{ color: 'red' }} title="Delete Example">
-                                                <Trash2 size={16} />
-                                            </button>
+                                            {editingId === ex.id ? (
+                                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                    <button
+                                                        onClick={handleSaveEdit}
+                                                        disabled={saving}
+                                                        className="btn-icon"
+                                                        style={{ color: '#22c55e' }}
+                                                        title="Save changes"
+                                                    >
+                                                        {saving ? '...' : <Check size={16} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={cancelEditing}
+                                                        className="btn-icon"
+                                                        style={{ color: 'var(--text-secondary)' }}
+                                                        title="Cancel editing"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                                    <button
+                                                        onClick={() => startEditing(ex)}
+                                                        className="btn-icon"
+                                                        style={{ color: 'var(--brand-primary)' }}
+                                                        title="Edit Example"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(ex.id)}
+                                                        className="btn-icon"
+                                                        style={{ color: 'red' }}
+                                                        title="Delete Example"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))
